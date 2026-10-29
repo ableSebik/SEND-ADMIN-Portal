@@ -1,0 +1,2 @@
+# Serve this application from app/public, never from the repository root.
+Require all denied

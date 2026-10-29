@@ -1,0 +1,18 @@
+/.composer/
+/composer.phar
+/qa-browser.cjs
+/*-preview.png
+/qa-*.php
+
+# Local data, uploaded files and generated verification artifacts
+**/*.sqlite*
+**/*.xlsx
+**/*.xls
+/docs/assets/import-*.json
+/docs/ui/
+/app/storage/**
+!/app/storage/**/
+!/app/storage/**/.gitignore
+/app/bootstrap/cache/*
+!/app/bootstrap/cache/.gitignore
+/qa-*.cjs
