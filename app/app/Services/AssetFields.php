@@ -29,11 +29,12 @@ class AssetFields
 
     public static function rules(): array
     {
-        return ['asset_type' => ['required', Rule::in(array_keys(self::TYPES))], 'name' => 'required|string|max:180', 'location' => ['required', Rule::in(User::OFFICES)], 'department' => ['required', Rule::in(User::DEPARTMENTS)], 'year' => 'required|integer|min:1900|max:2100', 'description' => 'nullable|string|max:3000', 'office_id' => 'nullable|string|max:100', 'purchase_date' => 'nullable|date_format:Y-m-d', 'supplier' => 'nullable|string|max:180', 'origin' => 'nullable|string|max:100', 'model' => 'nullable|string|max:180', 'manufacturer' => 'nullable|string|max:180', 'manufacture_year' => 'nullable|integer|min:1900|max:2100', 'serial' => 'nullable|string|max:180', 'staff_responsible' => 'nullable|string|max:180', 'invoice' => 'nullable|string|max:100', 'price' => 'required|numeric|min:0|max:9999999999.99', 'project' => 'nullable|string|max:180', 'donor' => 'nullable|string|max:180', 'notes' => 'nullable|string|max:3000'];
+        return ['asset_type' => ['required', Rule::in(array_keys(self::TYPES))], 'name' => 'required|string|max:180', 'location' => ['required', Rule::in(User::OFFICES)], 'department' => ['nullable', Rule::in(User::DEPARTMENTS)], 'year' => 'required|integer|min:1900|max:2100', 'description' => 'nullable|string|max:3000', 'office_id' => 'nullable|string|max:100', 'purchase_date' => 'nullable|date_format:Y-m-d', 'supplier' => 'nullable|string|max:180', 'origin' => 'nullable|string|max:100', 'model' => 'nullable|string|max:180', 'manufacturer' => 'nullable|string|max:180', 'manufacture_year' => 'nullable|integer|min:1900|max:2100', 'serial' => 'nullable|string|max:180', 'staff_responsible' => 'nullable|string|max:180', 'invoice' => 'nullable|string|max:100', 'price' => 'required|numeric|min:0|max:9999999999.99', 'project' => 'nullable|string|max:180', 'donor' => 'nullable|string|max:180', 'notes' => 'nullable|string|max:3000'];
     }
 
     public static function prepare(array $data): array
     {
+        $data['department'] = $data['department'] ?? '';
         $data['category'] = self::TYPES[$data['asset_type']];
         $data['cost'] = $data['price'];
         if ($data['asset_type'] !== 'motor_vehicle') {

@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title','Asset Register')
-@section('subtitle','Motor vehicles, office equipment, and furniture, fixtures and fittings in one register.')
+
 @section('actions')@if(\App\Services\Access::allows(auth()->user(),'export'))<a class="button secondary" href="{{ url('/records/assets/export').'?'.http_build_query(request()->query()) }}">Export CSV</a>@endif @if(\App\Services\Access::allows(auth()->user(),'create'))<a class="button" href="/records/assets/new"><svg><use href="#plus"/></svg>Add Asset</a>@endif @endsection
 @section('content')
 <section class="panel"><form class="panel-body stack" method="get" action="/records/assets"><div><label for="q">Search assets</label><input id="q" name="q" value="{{ request('q') }}" placeholder="Name, reference, office ID, serial, description or staff"></div><div class="asset-filter-grid">

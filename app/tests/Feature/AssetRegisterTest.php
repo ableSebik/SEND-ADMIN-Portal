@@ -82,6 +82,23 @@ class AssetRegisterTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'driver']))->post('/records/assets', $this->payload())->assertForbidden();
     }
 
+    public function test_department_is_optional_for_all_asset_types(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        foreach (AssetFields::TYPES as $type => $label) {
+            foreach (['', null] as $department) {
+                $this->post('/records/assets', [...$this->payload($type), 'department' => $department])->assertRedirect()->assertSessionHasNoErrors();
+            }
+            $payload = $this->payload($type);
+            unset($payload['department']);
+            $this->post('/records/assets', $payload)->assertRedirect()->assertSessionHasNoErrors();
+            $this->assertDatabaseHas('records', ['category' => $label, 'department' => '']);
+            $this->get('/records/assets/new?type='.$type)->assertOk()->assertSee('Department (optional)')->assertDontSee('name="department" required', false);
+        }
+        $this->assertDatabaseCount('records', 9);
+        $this->post('/records/assets', [...$this->payload('motor_vehicle'), 'department' => 'Other'])->assertSessionHasErrors('department');
+    }
+
     public function test_zero_price_and_legacy_records_are_preserved(): void
     {
         $u = User::factory()->create(['role' => 'admin']);

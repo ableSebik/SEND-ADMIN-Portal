@@ -25,7 +25,7 @@
 </div></div>
 <div class="form-section"><h2>Funding and department</h2><div class="form-grid">
 @foreach(['project'=>'Project','donor'=>'Donor'] as $field=>$label)<div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" maxlength="180" value="{{ old($field,$data[$field]??'') }}"></div>@endforeach
-<div><label for="department">Department *</label><select id="department" name="department" required><option value="">Choose department</option>@foreach(\App\Models\User::DEPARTMENTS as $department)<option value="{{ $department }}" @selected(old('department',$record?->department)===$department)>{{ $department }}</option>@endforeach</select></div>
+<div><label for="department">Department (optional)</label><select id="department" name="department"><option value="">Choose department</option>@foreach(\App\Models\User::DEPARTMENTS as $department)<option value="{{ $department }}" @selected(old('department',$record?->department)===$department)>{{ $department }}</option>@endforeach</select></div>
 <div class="full"><label for="notes">Notes</label><textarea id="notes" name="notes" maxlength="3000">{{ old('notes',$data['notes']??'') }}</textarea></div>
 </div></div><div class="form-footer">@if($record)<p class="help">Changes require independent approval before they take effect.</p>@endif<a class="button secondary" href="/records/assets">Cancel</a><button class="button">{{ $record?'Submit changes':'Add Asset' }}</button></div></form>
 @endsection
