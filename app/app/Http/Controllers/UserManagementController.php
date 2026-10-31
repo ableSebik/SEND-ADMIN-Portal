@@ -30,7 +30,7 @@ class UserManagementController extends Controller
             abort_unless(Access::canManageUser($request->user(), User::findOrFail($id)), 403);
         }
         $allowed = $request->user()->isSuperAdmin() ? array_keys(User::ROLES) : ['driver', 'officer'];
-        $validated = $request->validate(['name' => 'required|string|max:180', 'email' => ['required', 'email', 'max:180', Rule::unique('users')->ignore($id)], 'department' => ['required', Rule::in(User::DEPARTMENTS)], 'location' => ['required', Rule::in(User::OFFICES)], 'role' => ['required', Rule::in($allowed)], 'active' => $id ? 'required|boolean' : 'sometimes|boolean', 'password' => ($id ? 'nullable' : 'required').'|string|min:8|confirmed', ...($id ? ['current_password' => 'required|current_password'] : [])]);
+        $validated = $request->validate(['name' => 'required|string|max:180', 'phone' => ['nullable', 'regex:/^\+[1-9][0-9]{7,14}$/'], 'email' => ['required', 'email', 'max:180', Rule::unique('users')->ignore($id)], 'department' => ['required', Rule::in(User::DEPARTMENTS)], 'location' => ['required', Rule::in(User::OFFICES)], 'role' => ['required', Rule::in($allowed)], 'active' => $id ? 'required|boolean' : 'sometimes|boolean', 'password' => ($id ? 'nullable' : 'required').'|string|min:8|confirmed', ...($id ? ['current_password' => 'required|current_password'] : [])]);
         if ($id === $request->user()->id) {
             abort_if(! $validated['active'] || $validated['role'] !== 'super_admin', 422, 'You cannot disable or demote your own Super Admin account.');
         }

@@ -14,6 +14,7 @@
 <div class="trip-phases"><span class="phase done">1. Opening details saved</span><span class="phase {{ $record->status==='Completed'?'done':'' }}">2. Closing details{{ $record->status==='Completed'?' saved':'' }}</span><span class="badge {{ $record->status==='Pending'?'pending':'completed' }}">{{ $record->status }}</span></div>
 <div class="details-grid"><section class="panel"><div class="panel-header"><h2>Opening details</h2><span class="badge completed">Saved</span></div><div class="panel-body"><dl class="detail-list">
 <div><dt>OSO</dt><dd>{{ $driver?->name??'OSO #'.($record->data['driver_id']??'') }}</dd></div><div><dt>Vehicle</dt><dd>{{ $vehicle?->name??'Vehicle record' }}</dd></div>
+@if(isset($record->data['mileage_gap'])&&(float)$record->data['mileage_gap']!==0)<div><dt>Mileage difference</dt><dd>{{ $record->data['mileage_gap'] }} km (previous mileage: {{ $record->data['expected_mileage'] }} km). {{ $record->data['mileage_note']??'' }}</dd></div>@endif
 <div><dt>Department/Project</dt><dd>{{ $record->category }}</dd></div><div><dt>Purpose of journey</dt><dd>{{ $record->name }}</dd></div>
 <div><dt>From</dt><dd>{{ $record->data['from']??$record->location }}</dd></div><div><dt>Destination</dt><dd>{{ $record->data['destination']??'Not recorded in legacy log' }}</dd></div>
 <div><dt>Departure date and time</dt><dd>{{ $record->data['departure']??'Not recorded' }}</dd></div><div><dt>Mileage Before</dt><dd>{{ number_format((float)($record->data['opening']??0),1) }} km</dd></div>

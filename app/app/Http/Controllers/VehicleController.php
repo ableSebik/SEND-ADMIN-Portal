@@ -79,6 +79,9 @@ class VehicleController extends Controller
             }
             $data = $validated;
             unset($data['version']);
+            if ($id && isset($data['odometer']) && (float) $data['odometer'] !== (float) ($record->data['odometer'] ?? 0)) {
+                throw ValidationException::withMessages(['odometer' => 'Current mileage is updated by completed trips.']);
+            }
             $record->forceFill(['module' => 'vehicles', 'name' => $validated['name'], 'location' => $validated['location'], 'unique_key' => 'vehicle:'.$validated['registration'], 'data' => array_merge($record->data ?? [], $data), 'updated_by' => $request->user()->id]);
             if (! $id) {
                 $record->forceFill(['reference' => 'VEH-'.strtoupper(bin2hex(random_bytes(4))), 'category' => '', 'department' => '', 'status' => 'Available', 'created_by' => $request->user()->id]);

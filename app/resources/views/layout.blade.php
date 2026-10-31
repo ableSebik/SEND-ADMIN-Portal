@@ -25,6 +25,8 @@
         if(\App\Services\Access::allows(auth()->user(),'audit')) $nav['/audit']=['audit','Audit Trail'];
         if(\App\Services\Access::allows(auth()->user(),'users')) $nav['/users']=['vendors','Users'];
         $nav['/notifications']=['bell','Notifications'];
+        if(\App\Services\Access::allows(auth()->user(),'view')) $nav['/operational-history']=['vehicles','Operational history'];
+        if(\App\Services\Access::allows(auth()->user(),'vehicles.write')) $nav['/reference-data']=['vendors','Donors & projects'];
     }
 @endphp
 @foreach($nav as $url=>[$icon,$label])<a href="{{ $url }}" title="{{ $label }}" class="{{ request()->getPathInfo()===$url||($url!=='/'&&str_starts_with(request()->getPathInfo(),$url))?'selected':'' }}"><svg><use href="#{{ $icon }}"/></svg><span class="nav-label">{{ $label }}</span></a>@endforeach

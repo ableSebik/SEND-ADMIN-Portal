@@ -98,7 +98,7 @@ class RoleVehicleUserTest extends TestCase
         $vehicle = $this->vehicle($owner);
         $this->assertNull($driver->licence_expiry);
         $this->actingAs($driver)->get('/records/trips/new')->assertOk()->assertSee($vehicle->name);
-        $this->post('/records/trips', ['name' => 'Shared vehicle trip', 'category' => 'Admin', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000])->assertRedirect()->assertSessionHasNoErrors();
+        $this->post('/records/trips', ['name' => 'Shared vehicle trip', 'category' => 'HR/Admin', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000, 'expected_mileage' => 1000, 'mileage_verified' => 1])->assertRedirect()->assertSessionHasNoErrors();
         $trip = AdminRecord::where('module', 'trips')->firstOrFail();
         $this->assertSame((string) $driver->id, $trip->data['driver_id']);
     }

@@ -27,7 +27,7 @@ class TripTest extends TestCase
 
     private function opening(AdminRecord $vehicle): array
     {
-        return ['name' => 'Field visit', 'category' => 'Health project', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000];
+        return ['name' => 'Field visit', 'category' => 'Programs', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000, 'expected_mileage' => 1000, 'mileage_verified' => 1];
     }
 
     private function open(User $driver): AdminRecord
@@ -130,7 +130,7 @@ class TripTest extends TestCase
         $driver = $this->user();
         $trip = $this->open($driver);
         $vehicle = AdminRecord::findOrFail($trip->data['vehicle_id']);
-        $next = [...$this->opening($vehicle), 'departure' => '2026-10-28T08:00', 'opening' => 1100];
+        $next = [...$this->opening($vehicle), 'departure' => '2026-10-28T08:00', 'opening' => 1100, 'expected_mileage' => 1100];
         $this->post('/records/trips', $next)->assertSessionHasErrors('vehicle_id');
         $this->post('/records/trips/'.$trip->id.'/close', ['closing' => 1100, 'return_at' => '2026-10-27T17:00', 'version' => 1])->assertRedirect()->assertSessionHasNoErrors();
         $this->post('/records/trips', $next)->assertRedirect()->assertSessionHasNoErrors();
@@ -141,7 +141,7 @@ class TripTest extends TestCase
     {
         $driver = $this->user();
         $vehicle = $this->vehicle($driver);
-        $this->actingAs($driver)->post('/records/trips', [...$this->opening($vehicle), 'opening' => 999])->assertSessionHasErrors('opening');
+        $this->actingAs($driver)->post('/records/trips', [...$this->opening($vehicle), 'opening' => 999])->assertSessionHasErrors('mileage_note');
         $this->post('/records/trips', $this->opening($vehicle))->assertRedirect()->assertSessionHasNoErrors();
     }
 

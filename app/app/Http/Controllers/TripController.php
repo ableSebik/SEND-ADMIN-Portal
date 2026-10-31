@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AdminRecord;
 use App\Models\User;
 use App\Services\Access;
+use App\Services\FleetOperations;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +31,10 @@ class TripController extends Controller
         $validated = $request->validate([
             'driver_id' => $request->user()->isSuperAdmin() ? 'required|integer|exists:users,id' : 'exclude',
             'name' => 'required|string|max:180',
-            'category' => 'required|string|max:80',
+            'category' => ['required', 'string', 'max:180', Rule::in(array_merge(User::DEPARTMENTS, DB::table('asset_projects')->where('status', 'Active')->pluck('name')->all()))],
+            'mileage_verified' => 'required|accepted',
+            'expected_mileage' => 'required|numeric|min:0',
+            'mileage_note' => 'nullable|string|max:1000',
             'from' => 'required|string|max:180',
             'destination' => 'required|string|max:180',
             'vehicle_id' => 'required|integer',
@@ -63,10 +68,15 @@ class TripController extends Controller
             if ($conflict) {
                 throw ValidationException::withMessages(['vehicle_id' => 'You or this vehicle have an unclosed or conflicting trip. Complete that trip before opening another.']);
             }
-            if ((float) $validated['opening'] < (float) ($vehicle->data['odometer'] ?? 0)) {
-                throw ValidationException::withMessages(['opening' => 'Mileage Before cannot be below the vehicle’s current mileage.']);
+            $expected = (float) ($vehicle->data['odometer'] ?? 0);
+            if ((float) $validated['expected_mileage'] !== $expected) {
+                throw ValidationException::withMessages(['opening' => 'Vehicle mileage changed. Reload and verify the current mileage.']);
             }
-            $data = [...$validated, 'vehicle_id' => (string) $vehicle->id, 'driver_id' => (string) $driver->id, 'opened_by' => (string) $request->user()->id];
+            $gap = round((float) $validated['opening'] - $expected, 1);
+            if ($gap != 0 && trim($validated['mileage_note'] ?? '') === '') {
+                throw ValidationException::withMessages(['mileage_note' => 'Explain the difference from the vehicle’s current mileage.']);
+            }
+            $data = [...$validated, 'expected_mileage' => $expected, 'mileage_gap' => $gap, 'vehicle_id' => (string) $vehicle->id, 'driver_id' => (string) $driver->id, 'opened_by' => (string) $request->user()->id];
             $trip = AdminRecord::create([
                 'module' => 'trips', 'reference' => 'TRI-'.strtoupper(bin2hex(random_bytes(4))),
                 'name' => $validated['name'], 'category' => $validated['category'],
@@ -75,6 +85,10 @@ class TripController extends Controller
                 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id,
             ]);
             PortalController::audit('Opened trip', $trip->reference);
+            if ($gap != 0) {
+                FleetOperations::event($vehicle, 'Mileage gap', 'Recorded '.$expected.' km; trip opening '.$validated['opening'].' km; gap '.$gap.' km. '.$validated['mileage_note'], $request->user()->id, $trip->id);
+                PortalController::audit('Logged mileage gap', $trip->reference);
+            }
 
             return $trip;
         });
@@ -124,6 +138,9 @@ class TripController extends Controller
                 throw ValidationException::withMessages(['return_at' => 'Return date and time cannot be before departure.']);
             }
             $vehicle = AdminRecord::where('module', 'vehicles')->lockForUpdate()->findOrFail($trip->data['vehicle_id']);
+            if ((float) $validated['closing'] < (float) ($vehicle->data['odometer'] ?? 0)) {
+                throw ValidationException::withMessages(['closing' => 'Mileage After cannot be below the vehicle’s current mileage.']);
+            }
             $trip->data = [...$trip->data, 'closing' => $validated['closing'], 'return_at' => $validated['return_at'],
                 'distance' => round((float) $validated['closing'] - (float) $trip->data['opening'], 1),
                 'closed_by' => (string) $request->user()->id, 'closed_at' => now()->toIso8601String()];
@@ -131,9 +148,10 @@ class TripController extends Controller
             $trip->version++;
             $trip->updated_by = $request->user()->id;
             $trip->save();
-            $vehicle->update(['data' => [...$vehicle->data, 'odometer' => max((float) ($vehicle->data['odometer'] ?? 0), (float) $validated['closing'])],
+            $vehicle->update(['data' => [...$vehicle->data, 'odometer' => (float) $validated['closing']],
                 'version' => $vehicle->version + 1, 'updated_by' => $request->user()->id]);
             PortalController::audit('Completed trip', $trip->reference);
+            FleetOperations::event($vehicle, 'Trip completed', 'Closing mileage '.$validated['closing'].' km saved as current vehicle mileage.', $request->user()->id, $trip->id);
         });
 
         return redirect('/records/trips/'.$id)->with('success', 'Closing details saved. The trip is Completed.');

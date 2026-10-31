@@ -18,7 +18,7 @@ class OsoOfficeTest extends TestCase
 
     private function payload($v)
     {
-        return ['name' => 'Field trip', 'category' => 'Programs', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $v->id, 'departure' => '2026-10-28T08:00', 'opening' => 100];
+        return ['name' => 'Field trip', 'category' => 'Programs', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $v->id, 'departure' => '2026-10-28T08:00', 'opening' => 100, 'expected_mileage' => 100, 'mileage_verified' => 1];
     }
 
     public function test_oso_sees_only_available_same_office_vehicles_and_cannot_post_other_office()

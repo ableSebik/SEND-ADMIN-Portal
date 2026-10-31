@@ -13,6 +13,17 @@ class AssetRegisterTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        foreach (['Example Donor', 'Another Donor'] as $name) {
+            DB::table('asset_donors')->insert(['name' => $name, 'normalized_name' => strtolower($name)]);
+        }
+        foreach (['Health Project', 'Another Project', 'New Project'] as $name) {
+            DB::table('asset_projects')->insert(['name' => $name, 'code' => strtoupper(str_replace(' ', '-', $name)), 'status' => 'Active']);
+        }
+    }
+
     private function payload($type = 'office_equipment', $name = 'Laptop A'): array
     {
         return ['asset_type' => $type, 'name' => $name, 'year' => 2026, 'description' => 'Asset description', 'office_id' => 'SG/AO/LP/1/26', 'purchase_date' => '2026-03-10', 'supplier' => 'Test Supplier', 'origin' => 'Japan', 'model' => 'Model X', 'manufacturer' => 'Example', 'manufacture_year' => 2025, 'serial' => 'SERIAL-'.$name, 'location' => 'Accra', 'staff_responsible' => 'Test Officer', 'invoice' => 'INV-100', 'price' => 1250.50, 'project' => 'Health Project', 'donor' => 'Example Donor', 'department' => 'Programs'];

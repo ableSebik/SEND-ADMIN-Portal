@@ -9,6 +9,8 @@ use App\Http\Controllers\SecurityController as S;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\FleetOperationsController;
+use App\Http\Controllers\ReferenceDataController;
 use App\Http\Middleware\AccountSecurity;
 use App\Models\User;
 use App\Services\Access;
@@ -61,6 +63,13 @@ Route::middleware('guest')->group(function () {
 });
 Route::middleware(['auth', AccountSecurity::class])->group(function () {
     Route::get('/assets/register', [ImportedAssetController::class, 'index']);
+    Route::get('/operational-history', [FleetOperationsController::class, 'index']);
+    Route::post('/operational-history', [FleetOperationsController::class, 'store']);
+    Route::post('/vehicles/{id}/status', [FleetOperationsController::class, 'status']);
+    Route::get('/vehicles/{id}/service', [FleetOperationsController::class, 'serviceForm']);
+    Route::post('/vehicles/{id}/service', [FleetOperationsController::class, 'startService']);
+    Route::get('/reference-data', [ReferenceDataController::class, 'index']);
+    Route::post('/reference-data', [ReferenceDataController::class, 'store']);
     Route::get('/assets/register/export', [ImportedAssetController::class, 'export']);
     Route::get('/assets/register/{id}', [ImportedAssetController::class, 'show']);
     Route::get('/records/vehicles/{id}/delete', [VehicleController::class, 'deleteForm']);

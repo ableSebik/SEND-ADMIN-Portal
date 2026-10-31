@@ -1,6 +1,14 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
+
+Artisan::command('fleet:remind', function () {
+    app(\App\Services\RenewalReminders::class)->send();
+    $this->info('Renewal reminders processed. Check Operational history for delivery status.');
+})->purpose('Send scheduled vehicle renewal reminders');
+
+\Illuminate\Support\Facades\Schedule::command('fleet:remind')->dailyAt('08:00')->timezone('Africa/Accra')->withoutOverlapping();
 
 Artisan::command('send:admin {email} {--name=Administrator}', function () {
     $email = $this->argument('email');
@@ -26,7 +34,6 @@ Artisan::command('send:admin {email} {--name=Administrator}', function () {
 })->purpose('Create an initial administrator without hard-coded credentials');
 
 use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

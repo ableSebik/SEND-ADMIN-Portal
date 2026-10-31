@@ -63,7 +63,7 @@ class SuperAdminTest extends TestCase
         $admin = $this->user('superuser');
         $vehicle = $this->vehicle($other);
         $this->actingAs($admin)->get('/records/trips/new')->assertOk()->assertSee('name="driver_id"', false)->assertSee($driver->name)->assertSee($vehicle->name);
-        $opening = ['name' => 'Programme visit', 'category' => 'Health', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'driver_id' => $driver->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000];
+        $opening = ['name' => 'Programme visit', 'category' => 'Programs', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'driver_id' => $driver->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000, 'expected_mileage' => 1000, 'mileage_verified' => 1];
         $this->post('/records/trips', $opening)->assertRedirect()->assertSessionHasNoErrors();
         $trip = AdminRecord::where('module', 'trips')->firstOrFail();
         $this->assertSame($admin->id, $trip->created_by);
@@ -80,10 +80,10 @@ class SuperAdminTest extends TestCase
         $driver = $this->user('driver');
         $admin = $this->user('super_admin');
         $vehicle = $this->vehicle($driver);
-        $opening = ['name' => 'Visit', 'category' => 'Admin', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000];
+        $opening = ['name' => 'Visit', 'category' => 'HR/Admin', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000, 'expected_mileage' => 1000, 'mileage_verified' => 1];
         $this->actingAs($admin)->post('/records/trips', $opening)->assertSessionHasErrors('driver_id');
         $this->post('/records/trips', [...$opening, 'driver_id' => $admin->id])->assertSessionHasErrors('driver_id');
-        $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id, 'opening' => 999])->assertSessionHasErrors('opening');
+        $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id, 'opening' => 999])->assertSessionHasErrors('mileage_note');
         $driver->forceFill(['active' => false])->save();
         $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id])->assertSessionHasErrors('driver_id');
         $this->assertSame(0, AdminRecord::where('module', 'trips')->count());
