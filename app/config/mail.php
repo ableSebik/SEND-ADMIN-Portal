@@ -37,6 +37,14 @@ return [
 
     'mailers' => [
 
+        'microsoft_graph' => [
+            'transport' => 'microsoft_graph',
+            'tenant_id' => env('M365_TENANT_ID'),
+            'client_id' => env('M365_CLIENT_ID'),
+            'client_secret' => env('M365_CLIENT_SECRET'),
+            'sender' => env('MAIL_FROM_ADDRESS'),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

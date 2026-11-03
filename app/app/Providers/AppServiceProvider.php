@@ -19,6 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Mail::extend('microsoft_graph', fn (array $config) => new \App\Mail\MicrosoftGraphTransport($config));
     }
 }
