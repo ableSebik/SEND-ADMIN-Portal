@@ -1,7 +1,12 @@
 @extends('layout')
 @section('title',$asset->name)
 @section('subtitle','Imported asset #'.$asset->id.' · '.$asset->source_sheet.' / row '.$asset->source_row)
-@section('actions')<a class="button secondary" href="/assets/register">Back to imported register</a>@endsection
+@section('actions')
+@if(auth()->user()->isSuperAdmin())
+<form method="post" action="/assets/register/{{ $asset->id }}" data-confirm="Delete this asset?">@csrf @method('DELETE')<button class="button secondary danger">Delete asset</button></form>
+@endif
+<a class="button secondary" href="/assets/register">Back to imported register</a>
+@endsection
 @section('content')
 @if($asset->held_by_partner)<div class="notice success">Held by partner</div>@endif
 <section class="panel"><div class="panel-header"><h2>Overview and financials</h2><span class="badge">{{ $asset->status }}</span></div><div class="panel-body"><p>{{ $asset->description }}</p><dl class="detail-list">@foreach(['asset_tag'=>'Asset tag','category'=>'Category','serial_or_chassis_no'=>'Serial / chassis','registration_no'=>'Registration','origin'=>'Origin','model'=>'Model','purchase_date'=>'Purchase date','purchase_year'=>'Purchase year','supplier'=>'Supplier','invoice_no'=>'Invoice','project'=>'Project','donor'=>'Donor','location'=>'Location','custodian'=>'Custodian','condition'=>'Condition','acquisition_type'=>'Acquisition type','cost_basis'=>'Cost basis'] as $field=>$label)<div><dt>{{ $label }}</dt><dd>{{ $asset->$field??'Not confirmed' }}</dd></div>@endforeach<div><dt>Unit cost</dt><dd>{{ $asset->unit_cost===null?'Unknown':'GH¢ '.number_format($asset->unit_cost,2) }}</dd></div></dl><p class="help">Amounts with exceptions are provisional. Depreciation and net book value are not calculated until Finance confirms the policy.</p></div></section>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AdminRecord;
 use App\Services\Access;
+use App\Services\AuditCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -45,13 +46,30 @@ class RecordSupportController extends Controller
 
     public function download(int $id)
     {
-        $doc = DB::table('documents')->find($id);
+        $doc = DB::table('documents')->whereNull('deleted_at')->find($id);
         abort_unless($doc, 404);
         $record = $this->record($doc->record_id);
         abort_if($record->module !== 'trips' && in_array(Auth::user()->role, ['staff', 'driver']) && ! in_array($doc->type, ['Handover', 'Trip authorization']), 403);
         PortalController::audit('Downloaded document', $record->reference);
 
         return Storage::disk('local')->download($doc->path, $doc->name, ['X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function deleteDocument(Request $request, int $id)
+    {
+        abort_unless($request->user()->active && $request->user()->isSuperAdmin(), 403);
+        $record = DB::transaction(function () use ($id) {
+            $documents = DB::table('documents')->whereNull('deleted_at');
+            $doc = (clone $documents)->lockForUpdate()->find($id);
+            abort_unless($doc, 404);
+            $record = AdminRecord::findOrFail($doc->record_id);
+            $documents->where('id', $id)->update(['deleted_at' => now(), 'updated_at' => now()]);
+            PortalController::audit('Deleted document', $record->reference.' / document #'.$id, AuditCategory::resolve('Deleted document', $record->reference));
+
+            return $record;
+        });
+
+        return redirect('/records/'.$record->module.'/'.$record->id)->with('success', 'Document deleted.');
     }
 
     public function entry(Request $r, int $id)
@@ -61,7 +79,7 @@ class RecordSupportController extends Controller
             abort_unless(Access::allows(Auth::user(), 'vehicles.write'), 403);
         }
         abort_unless(Access::allows(Auth::user(), 'create') || ($record->module === 'trips' && Access::allows(Auth::user(), 'trip')), 403);
-        $v = $r->validate(['type' => 'required|in:'.implode(',', self::TYPES[$record->module]), 'title' => 'required|string|max:180', 'date' => 'required|date', 'amount' => 'nullable|numeric|min:0|max:9999999999', 'quantity' => 'nullable|numeric|min:0|max:999999999', 'notes' => 'nullable|string|max:3000', 'due_at' => 'nullable|date|after_or_equal:date']);
+        $v = $r->validate(['type' => 'required|in:'.implode(',', self::TYPES[$record->module]), 'title' => 'required|string|max:180', 'date' => 'required|date', 'amount' => 'nullable|numeric|min:0|max:9999999999', 'quantity' => 'nullable|numeric|min:0|max:999999999', 'notes' => 'nullable|string|max:3000', 'due_at' => 'nullable|date_format:Y-m-d|after_or_equal:date|after_or_equal:'.now('Africa/Accra')->toDateString()]);
         DB::transaction(function () use ($record, $v) {
             DB::table('record_entries')->insert([...$v, 'record_id' => $record->id, 'created_by' => Auth::id(), 'created_at' => now(), 'updated_at' => now()]);
             PortalController::audit('Added '.$v['type'], $record->reference);
@@ -73,7 +91,7 @@ class RecordSupportController extends Controller
     public function notifications()
     {
         $ids = Access::scope(AdminRecord::query(), Auth::user())->select('id');
-        $documents = DB::table('documents')->join('records', 'records.id', '=', 'documents.record_id')->whereIn('records.id', $ids)->whereNotNull('expires_at')->where('expires_at', '<=', now()->addDays(30)->toDateString())->select('documents.*', 'records.reference', 'records.module')->get();
+        $documents = DB::table('documents')->join('records', 'records.id', '=', 'documents.record_id')->whereIn('records.id', $ids)->whereNull('documents.deleted_at')->whereNotNull('expires_at')->where('expires_at', '<=', now()->addDays(30)->toDateString())->select('documents.*', 'records.reference', 'records.module')->get();
         $entries = DB::table('record_entries')->join('records', 'records.id', '=', 'record_entries.record_id')->whereIn('records.id', $ids)->whereNotNull('due_at')->where('due_at', '<=', now()->addDays(30)->toDateString())->select('record_entries.*', 'records.reference', 'records.module')->get();
 
         return view('notifications', compact('documents', 'entries'));

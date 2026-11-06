@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class FleetOperations
 {
-    public const KINDS = ['service' => 'Maintenance / servicing', 'roadworthiness' => 'Roadworthiness', 'insurance' => 'Insurance'];
+    public const KINDS = ['service' => 'Maintenance / servicing', 'roadworthiness' => 'Roadworthiness', 'insurance' => 'Insurance', 'license' => 'License renewal'];
     public const STATUSES = ['Available', 'Maintenance', 'Unavailable'];
 
     public static function event(AdminRecord $vehicle, string $kind, string $details, int $actor, ?int $trip = null): void

@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', 'Operational history')
-@section('subtitle', 'Maintenance, roadworthiness, insurance and mileage history.')
+@section('subtitle', 'Maintenance, roadworthiness, insurance, licensing and mileage history.')
 @section('content')
     <section class="panel">
         <form method="get" class="panel-body form-grid">
@@ -52,7 +52,7 @@
                             name="completed_on" type="date" required
                             value="{{ old('completed_on', now()->format('Y-m-d')) }}"></div>
                     <div><label for="due_on">Next service / renewal due *</label><input id="due_on" name="due_on"
-                            type="date" required value="{{ old('due_on') }}"></div>
+                            type="date" required min="{{ now('Africa/Accra')->toDateString() }}" value="{{ old('due_on') }}"></div>
                     @foreach (['provider' => 'Garage / insurer / issuing authority', 'reference' => 'Policy / certificate / invoice reference'] as $key => $label)
                         <div><label for="{{ $key }}">{{ $label }}</label><input id="{{ $key }}"
                                 name="{{ $key }}" maxlength="180" value="{{ old($key) }}"></div>

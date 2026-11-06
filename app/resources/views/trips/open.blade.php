@@ -16,7 +16,7 @@
 <div><label for="vehicle_id">Vehicle *</label><select id="vehicle_id" name="vehicle_id" required><option value="">Choose vehicle</option>@foreach($vehicles as $vehicle)<option data-mileage="{{ $vehicle->data['odometer']??0 }}" value="{{ $vehicle->id }}" @selected(old('vehicle_id')==$vehicle->id)>{{ $vehicle->name }} · {{ $vehicle->data['registration']??$vehicle->reference }}</option>@endforeach</select>@if(auth()->user()->role==='driver')<p class="help">Available vehicles in your office: {{ auth()->user()->location }}.</p>@if($vehicles->isEmpty())<p class="help">No available vehicles in your office. Contact an administrator.</p>@endif @endif</div>
 @foreach(['name'=>'Purpose of journey','from'=>'From','destination'=>'Destination'] as $key=>$label)<div><label for="{{ $key }}">{{ $label }} *</label><input id="{{ $key }}" name="{{ $key }}" value="{{ old($key) }}" required maxlength="{{ $key==='category'?80:180 }}"></div>@endforeach
 @include('trips.project-field')
-<div><label for="departure">Departure date and time *</label><input id="departure" name="departure" type="datetime-local" value="{{ old('departure',now()->timezone('Africa/Accra')->format('Y-m-d\TH:i')) }}" required></div>
+<div><label for="departure">Departure date and time *</label><input id="departure" name="departure" type="datetime-local" value="{{ old('departure') }}" min="{{ now('Africa/Accra')->format('Y-m-d\TH:i') }}" required></div>
 <div><label for="opening">Mileage Before (km) *</label><input id="opening" name="opening" type="number" step="0.1" min="0" value="{{ old('opening') }}" required></div>
 @include('trips.mileage-verification')
 <div><label for="fuel">Fuel issued (litres)</label><input id="fuel" name="fuel" type="number" step="0.01" min="0" value="{{ old('fuel') }}"></div>

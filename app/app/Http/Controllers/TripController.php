@@ -34,11 +34,10 @@ class TripController extends Controller
             'category' => ['required', 'string', 'max:180', Rule::in(array_merge(User::DEPARTMENTS, DB::table('asset_projects')->where('status', 'Active')->pluck('name')->all()))],
             'mileage_verified' => 'required|accepted',
             'expected_mileage' => 'required|numeric|min:0',
-            'mileage_note' => 'nullable|string|max:1000',
             'from' => 'required|string|max:180',
             'destination' => 'required|string|max:180',
             'vehicle_id' => 'required|integer',
-            'departure' => 'required|date_format:Y-m-d\TH:i',
+            'departure' => 'required|date_format:Y-m-d\TH:i|after_or_equal:'.now('Africa/Accra')->format('Y-m-d\TH:i'),
             'opening' => 'required|numeric|min:0|max:999999999.9',
             'fuel' => 'nullable|numeric|min:0|max:9999999',
             'passengers' => 'nullable|integer|min:0|max:100',
@@ -73,9 +72,6 @@ class TripController extends Controller
                 throw ValidationException::withMessages(['opening' => 'Vehicle mileage changed. Reload and verify the current mileage.']);
             }
             $gap = round((float) $validated['opening'] - $expected, 1);
-            if ($gap != 0 && trim($validated['mileage_note'] ?? '') === '') {
-                throw ValidationException::withMessages(['mileage_note' => 'Explain the difference from the vehicle’s current mileage.']);
-            }
             $data = [...$validated, 'expected_mileage' => $expected, 'mileage_gap' => $gap, 'vehicle_id' => (string) $vehicle->id, 'driver_id' => (string) $driver->id, 'opened_by' => (string) $request->user()->id];
             $trip = AdminRecord::create([
                 'module' => 'trips', 'reference' => 'TRI-'.strtoupper(bin2hex(random_bytes(4))),
@@ -86,7 +82,7 @@ class TripController extends Controller
             ]);
             PortalController::audit('Opened trip', $trip->reference);
             if ($gap != 0) {
-                FleetOperations::event($vehicle, 'Mileage gap', 'Recorded '.$expected.' km; trip opening '.$validated['opening'].' km; gap '.$gap.' km. '.$validated['mileage_note'], $request->user()->id, $trip->id);
+                FleetOperations::event($vehicle, 'Mileage gap', 'Recorded '.$expected.' km; trip opening '.$validated['opening'].' km; gap '.$gap.' km.', $request->user()->id, $trip->id);
                 PortalController::audit('Logged mileage gap', $trip->reference);
             }
 

@@ -22,7 +22,6 @@
         if(\App\Services\Access::allows(auth()->user(),'view')) foreach(App\Http\Controllers\PortalController::MODULES as $key=>$label) $nav['/records/'.$key]=[$key,$label];
         if(\App\Services\Access::allows(auth()->user(),'approve')) $nav['/approvals']=['approvals','Approvals'];
         if(\App\Services\Access::allows(auth()->user(),'export')) $nav['/reports']=['reports','Reports'];
-        if(\App\Services\Access::allows(auth()->user(),'audit')) $nav['/audit']=['audit','Audit Trail'];
         if(\App\Services\Access::allows(auth()->user(),'users')) $nav['/users']=['vendors','Users'];
         $nav['/notifications']=['bell','Notifications'];
         if(\App\Services\Access::allows(auth()->user(),'view')) $nav['/operational-history']=['vehicles','Operational history'];

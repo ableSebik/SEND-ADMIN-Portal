@@ -13,6 +13,12 @@ class SuperAdminTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(now('Africa/Accra')->setDate(2026, 10, 27)->setTime(8, 0));
+    }
+
     private function user(string $role): User
     {
         $user = User::factory()->create();
@@ -83,7 +89,7 @@ class SuperAdminTest extends TestCase
         $opening = ['name' => 'Visit', 'category' => 'HR/Admin', 'from' => 'Accra', 'destination' => 'Tamale', 'vehicle_id' => $vehicle->id, 'departure' => '2026-10-27T08:00', 'opening' => 1000, 'expected_mileage' => 1000, 'mileage_verified' => 1];
         $this->actingAs($admin)->post('/records/trips', $opening)->assertSessionHasErrors('driver_id');
         $this->post('/records/trips', [...$opening, 'driver_id' => $admin->id])->assertSessionHasErrors('driver_id');
-        $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id, 'opening' => 999])->assertSessionHasErrors('mileage_note');
+        $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id, 'expected_mileage' => 999])->assertSessionHasErrors('opening');
         $driver->forceFill(['active' => false])->save();
         $this->post('/records/trips', [...$opening, 'driver_id' => $driver->id])->assertSessionHasErrors('driver_id');
         $this->assertSame(0, AdminRecord::where('module', 'trips')->count());

@@ -20,9 +20,9 @@ class PortalController extends Controller
 {
     public const MODULES = ['vendors' => 'Vendor Management', 'vehicles' => 'Vehicles', 'trips' => 'Trips', 'assets' => 'Asset Register'];
 
-    public static function audit(string $action, string $subject): void
+    public static function audit(string $action, string $subject, ?string $category = null): void
     {
-        DB::table('audit_events')->insert(['user_id' => Auth::id(), 'action' => $action, 'subject' => $subject, 'category' => AuditCategory::resolve($action, $subject), 'ip' => request()->ip(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('audit_events')->insert(['user_id' => Auth::id(), 'action' => $action, 'subject' => $subject, 'category' => $category ?? AuditCategory::resolve($action, $subject), 'ip' => request()->ip(), 'created_at' => now(), 'updated_at' => now()]);
     }
 
     public function login(Request $r)
@@ -67,7 +67,8 @@ class PortalController extends Controller
         $counts = [];
         foreach (self::MODULES as $k => $v) {
             $counts[$k] = (clone $q)->where('module', $k)->count();
-        }$pending = DB::table('approvals')->where('status', 'Pending')->when(! Access::allows(Auth::user(), 'approve'), fn ($q) => $q->where('requested_by', Auth::id()))->count();
+        }
+        $pending = DB::table('approvals')->whereIn('record_id', AdminRecord::select('id'))->where('status', 'Pending')->when(! Access::allows(Auth::user(), 'approve'), fn ($q) => $q->where('requested_by', Auth::id()))->count();
         $activity = DB::table('audit_events')->when(! Access::allows(Auth::user(), 'audit'), fn ($q) => $q->where('user_id', Auth::id()))->latest('id')->limit(7)->get();
 
         return view('dashboard', compact('counts', 'pending', 'activity'));
@@ -149,12 +150,30 @@ class PortalController extends Controller
         $record = Access::scope(AdminRecord::where('module', $module), Auth::user())->findOrFail($id);
         $history = DB::table('approvals')->where('record_id', $id)->latest()->get();
         $people = User::where('active', true)->get();
-        $documents = DB::table('documents')->where('record_id', $id)->when(Auth::user()->role === 'driver' && $module !== 'trips', fn ($q) => $q->whereIn('type', ['Handover', 'Trip authorization']))->latest()->get();
+        $documents = DB::table('documents')->whereNull('deleted_at')->where('record_id', $id)->when(Auth::user()->role === 'driver' && $module !== 'trips', fn ($q) => $q->whereIn('type', ['Handover', 'Trip authorization']))->latest()->get();
         $entries = DB::table('record_entries')->where('record_id', $id)->when(! in_array(Auth::user()->role, ['super_admin', 'admin']), fn ($q) => $q->where(fn ($q) => $q->where('type', '!=', 'Incident')->orWhere('created_by', Auth::id())))->latest()->get();
 
         $tripNotes = $module === 'trips' ? DB::table('trip_notes')->join('users', 'users.id', '=', 'trip_notes.user_id')->where('record_id', $id)->select('trip_notes.*', 'users.name')->orderByDesc('trip_notes.id')->get() : collect();
 
         return view($module === 'trips' ? 'trips.show' : ($module === 'vehicles' ? 'vehicles.show' : 'show'), compact('record', 'module', 'history', 'people', 'documents', 'entries', 'tripNotes'));
+    }
+
+    public function deleteRecord(Request $request, string $module, int $id)
+    {
+        abort_unless($request->user()->active && $request->user()->isSuperAdmin(), 403);
+        $label = ['trips' => 'trip', 'assets' => 'asset', 'vendors' => 'vendor'][$module] ?? null;
+        abort_unless($label, 404);
+        $version = $request->validate(['version' => 'required|integer'])['version'];
+
+        DB::transaction(function () use ($module, $id, $label, $version, $request) {
+            $record = AdminRecord::where('module', $module)->lockForUpdate()->findOrFail($id);
+            abort_unless($record->version === (int) $version, 409, 'This record changed. Reload before deleting.');
+            $record->update(['updated_by' => $request->user()->id, 'version' => $record->version + 1]);
+            $record->delete();
+            self::audit('Deleted '.$label, $record->reference);
+        });
+
+        return redirect('/records/'.$module)->with('success', ucfirst($label).' deleted.');
     }
 
     public function action(Request $r, string $module, int $id)
@@ -194,7 +213,7 @@ class PortalController extends Controller
     public function approvals()
     {
         abort_unless(Access::allows(Auth::user(), 'approve'), 403);
-        $approvals = DB::table('approvals')->join('records', 'records.id', '=', 'approvals.record_id')->join('users', 'users.id', '=', 'approvals.requested_by')->select('approvals.*', 'records.reference', 'records.name as record_name', 'users.name as requester')->orderByDesc('approvals.id')->paginate(20);
+        $approvals = DB::table('approvals')->join('records', 'records.id', '=', 'approvals.record_id')->join('users', 'users.id', '=', 'approvals.requested_by')->whereNull('records.deleted_at')->select('approvals.*', 'records.reference', 'records.name as record_name', 'users.name as requester')->orderByDesc('approvals.id')->paginate(20);
 
         return view('approvals', compact('approvals'));
     }
@@ -264,7 +283,7 @@ class PortalController extends Controller
     public function auditPage(Request $request)
     {
         abort_unless(Access::allows(Auth::user(), 'audit'), 403);
-        $filters = $request->validate(['category' => 'nullable|in:account,vehicle,trip,asset,user', 'from_date' => 'nullable|date_format:Y-m-d', 'to_date' => 'nullable|date_format:Y-m-d|after_or_equal:from_date']);
+        $filters = $request->validate(['category' => 'nullable|in:account,vehicle,trip,asset,vendor,user', 'from_date' => 'nullable|date_format:Y-m-d', 'to_date' => 'nullable|date_format:Y-m-d|after_or_equal:from_date']);
         $query = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'audit_events.user_id')->select('audit_events.*', 'users.name');
         if (! empty($filters['category'])) {
             $query->where('audit_events.category', $filters['category']);

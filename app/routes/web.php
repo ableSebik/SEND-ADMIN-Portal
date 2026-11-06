@@ -72,6 +72,7 @@ Route::middleware(['auth', AccountSecurity::class])->group(function () {
     Route::post('/reference-data', [ReferenceDataController::class, 'store']);
     Route::get('/assets/register/export', [ImportedAssetController::class, 'export']);
     Route::get('/assets/register/{id}', [ImportedAssetController::class, 'show']);
+    Route::delete('/assets/register/{id}', [ImportedAssetController::class, 'delete']);
     Route::get('/records/vehicles/{id}/delete', [VehicleController::class, 'deleteForm']);
     Route::post('/records/vehicles/{id}/delete', [VehicleController::class, 'delete'])->middleware('throttle:5,1');
     Route::post('/records/trips/{id}/notes', [TripController::class, 'addNote']);
@@ -83,6 +84,7 @@ Route::middleware(['auth', AccountSecurity::class])->group(function () {
     Route::post('/records/{id}/documents', [RecordSupportController::class, 'upload']);
     Route::post('/records/{id}/entries', [RecordSupportController::class, 'entry']);
     Route::get('/documents/{id}', [RecordSupportController::class, 'download']);
+    Route::delete('/documents/{id}', [RecordSupportController::class, 'deleteDocument']);
     Route::get('/notifications', [RecordSupportController::class, 'notifications']);
     Route::get('/approvals', [P::class, 'approvals']);
     Route::post('/approvals/{id}', [P::class, 'decide']);
@@ -105,5 +107,6 @@ Route::middleware(['auth', AccountSecurity::class])->group(function () {
     Route::get('/records/{module}/export', [P::class, 'export']);
     Route::get('/records/{module}/{id}', [P::class, 'show']);
     Route::post('/records/{module}/{id}', [P::class, 'action']);
+    Route::delete('/records/{module}/{id}', [P::class, 'deleteRecord']);
     Route::post('/assets/{id}/acknowledge', [P::class, 'acknowledge']);
 });

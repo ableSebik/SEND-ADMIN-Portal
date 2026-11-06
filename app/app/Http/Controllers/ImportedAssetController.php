@@ -79,6 +79,19 @@ class ImportedAssetController extends Controller
         return view('assets.imported-show', compact('asset', 'sources', 'exceptions'));
     }
 
+    public function delete(Request $request, int $id)
+    {
+        abort_unless($request->user()->active && $request->user()->isSuperAdmin(), 403);
+        DB::transaction(function () use ($id) {
+            $deleted = DB::table('assets')->where('id', $id)->whereNull('deleted_at')
+                ->update(['deleted_at' => now(), 'updated_at' => now()]);
+            abort_unless($deleted, 404);
+            PortalController::audit('Deleted imported asset', 'Imported asset #'.$id, 'asset');
+        });
+
+        return redirect('/assets/register')->with('success', 'Asset deleted.');
+    }
+
     public function export(Request $r)
     {
         $this->authorizeRead($r);

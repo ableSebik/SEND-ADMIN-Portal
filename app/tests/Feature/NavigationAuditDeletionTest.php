@@ -30,6 +30,8 @@ class NavigationAuditDeletionTest extends TestCase
     {
         $u = $this->user();
         $this->actingAs($u)->get('/')->assertOk()->assertSee('Toggle sidebar')->assertSee('account-menu')->assertSee('href="/account"', false)->assertDontSee('href="/security"', false);
+        $this->get('/records/vehicles')->assertDontSee('href="/audit"', false);
+        $this->get('/reports')->assertOk()->assertSee('View Logs')->assertSee('href="/audit"', false);
         $this->get('/account')->assertOk()->assertSee('Change password');
         $v = $this->record($u);
         PortalController::audit('Created vehicle', $v->reference);
@@ -64,6 +66,34 @@ class NavigationAuditDeletionTest extends TestCase
         $this->assertSoftDeleted($v);
         $this->assertDatabaseHas('audit_events', ['action' => 'Deleted vehicle', 'category' => 'vehicle']);
         $this->get('/records/vehicles/'.$v->id)->assertNotFound();
+    }
+
+    public function test_record_and_document_deletions_are_restricted_and_logged(): void
+    {
+        Storage::fake('local');
+        $superAdmin = $this->user();
+        $admin = $this->user('admin');
+        foreach (['trips' => 'trip', 'assets' => 'asset', 'vendors' => 'vendor'] as $module => $label) {
+            $record = $this->record($superAdmin, $module);
+            $path = '/records/'.$module.'/'.$record->id;
+            $this->actingAs($admin)->delete($path, ['version' => 1])->assertForbidden();
+            $this->assertNotSoftDeleted($record);
+            $this->actingAs($superAdmin)->get($path)->assertSee('Delete '.$label);
+            $this->delete($path, ['version' => 99])->assertStatus(409);
+            $this->delete($path, ['version' => 1])->assertRedirect('/records/'.$module);
+            $this->assertSoftDeleted($record);
+            $this->assertDatabaseHas('audit_events', ['action' => 'Deleted '.$label, 'subject' => $record->reference, 'user_id' => $superAdmin->id]);
+        }
+
+        $record = $this->record($superAdmin);
+        $this->post('/records/'.$record->id.'/documents', ['type' => 'Insurance', 'file' => UploadedFile::fake()->create('policy.pdf', 2, 'application/pdf')])->assertSessionHasNoErrors();
+        $id = DB::table('documents')->value('id');
+        $this->actingAs($admin)->delete('/documents/'.$id)->assertForbidden();
+        $this->actingAs($superAdmin)->delete('/documents/'.$id)->assertRedirect('/records/vehicles/'.$record->id);
+        $this->get('/documents/'.$id)->assertNotFound();
+        $this->get('/records/vehicles/'.$record->id)->assertDontSee('policy.pdf');
+        $this->assertSoftDeleted('documents', ['id' => $id]);
+        $this->assertDatabaseHas('audit_events', ['action' => 'Deleted document', 'subject' => $record->reference.' / document #'.$id, 'user_id' => $superAdmin->id]);
     }
 
     public function test_pending_trips_block_deletion_and_completed_history_is_retained(): void

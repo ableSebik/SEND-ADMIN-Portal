@@ -41,7 +41,7 @@ class FleetOperationsController extends Controller
             'vehicle_id' => 'required|integer', 'version' => 'required|integer',
             'kind' => ['required', Rule::in(array_keys(FleetOperations::KINDS))],
             'completed_on' => 'required|date_format:Y-m-d|before_or_equal:today',
-            'due_on' => 'required|date_format:Y-m-d|after:completed_on',
+            'due_on' => 'required|date_format:Y-m-d|after:completed_on|after_or_equal:'.now('Africa/Accra')->toDateString(),
             'provider' => 'nullable|string|max:180', 'reference' => 'nullable|string|max:180',
             'cost' => 'nullable|numeric|min:0|max:999999999999', 'notes' => 'nullable|string|max:3000',
             'completion_notes' => 'nullable|string|max:3000',
@@ -60,7 +60,7 @@ class FleetOperationsController extends Controller
                 DB::table('vehicle_service_requests')->where('vehicle_id', $vehicle->id)->whereNull('completed_at')
                     ->update(['operation_id' => $operationId, 'completed_at' => now(), 'updated_at' => now()]);
             }
-            $key = ['service' => 'next_service', 'roadworthiness' => 'roadworthy_expiry', 'insurance' => 'insurance_expiry'][$v['kind']];
+            $key = ['service' => 'next_service', 'roadworthiness' => 'roadworthy_expiry', 'insurance' => 'insurance_expiry', 'license' => 'licence_expiry'][$v['kind']];
             $vehicle->update(['data' => [...$vehicle->data, $key => $v['due_on']], 'version' => $vehicle->version + 1, 'updated_by' => $request->user()->id]);
             if ($v['kind'] === 'service' && ($v['release_vehicle'] ?? false) && $vehicle->status === 'Maintenance') {
                 FleetOperations::setStatus($vehicle, 'Available', 'Servicing completed and vehicle released.', $request->user()->id);

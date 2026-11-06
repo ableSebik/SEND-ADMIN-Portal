@@ -7,6 +7,7 @@
  $canClose=$record->status==='Pending'&&(auth()->user()->isSuperAdmin()||(auth()->user()->role==='driver'&&(string)($record->data['driver_id']??'')===(string)auth()->id()));
 @endphp
 @section('actions')
+@include('delete-record', ['label' => 'trip'])
 @if($canClose)<a class="button" href="/records/trips/{{ $record->id }}/close">Add closing details</a>@endif
 <a class="button secondary" href="/records/trips">Back to Trips</a>
 @endsection

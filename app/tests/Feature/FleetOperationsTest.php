@@ -15,6 +15,12 @@ class FleetOperationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(now('Africa/Accra')->setDate(2026, 10, 27)->setTime(8, 0));
+    }
+
     private function vehicle(User $actor): AdminRecord
     {
         return AdminRecord::create(['module' => 'vehicles', 'reference' => uniqid('V-'), 'name' => 'Fleet pickup',
@@ -42,6 +48,24 @@ class FleetOperationsTest extends TestCase
         $this->post('/vehicles/'.$vehicle->id.'/status', ['status' => 'Unavailable', 'reason' => 'Unusable', 'version' => 1])->assertStatus(409);
     }
 
+    public function test_scheduling_rejects_past_due_dates_for_all_renewal_types(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $vehicle = $this->vehicle($admin)->refresh();
+        foreach (['service', 'roadworthiness', 'insurance', 'license'] as $kind) {
+            $this->actingAs($admin)->post('/operational-history', [
+                'vehicle_id' => $vehicle->id, 'version' => $vehicle->version, 'kind' => $kind,
+                'completed_on' => '2026-10-25', 'due_on' => '2026-10-26',
+            ])->assertSessionHasErrors('due_on');
+        }
+        $this->assertDatabaseCount('vehicle_operations', 0);
+        $this->post('/operational-history', [
+            'vehicle_id' => $vehicle->id, 'version' => $vehicle->version, 'kind' => 'license',
+            'completed_on' => '2026-10-25', 'due_on' => '2026-10-27',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('2026-10-27', $vehicle->fresh()->data['licence_expiry']);
+    }
+
     public function test_non_available_vehicles_are_excluded_and_server_rejects_trip_creation(): void
     {
         $driver = User::factory()->create(['role' => 'driver']);
@@ -66,11 +90,10 @@ class FleetOperationsTest extends TestCase
     {
         $driver = User::factory()->create(['role' => 'driver']);
         $vehicle = $this->vehicle($driver);
-        $this->actingAs($driver)->get('/records/trips/new')->assertSee('data-mileage="1000"', false)->assertSee('verified the starting mileage');
+        $this->actingAs($driver)->get('/records/trips/new')->assertSee('data-mileage="1000"', false)->assertSee('verified the starting mileage')->assertDontSee('Reason for mileage difference');
         $this->post('/records/trips', [...$this->opening($vehicle), 'mileage_verified' => 0])->assertSessionHasErrors('mileage_verified');
         $this->post('/records/trips', [...$this->opening($vehicle), 'expected_mileage' => 900])->assertSessionHasErrors('opening');
-        $this->post('/records/trips', [...$this->opening($vehicle), 'opening' => 1025])->assertSessionHasErrors('mileage_note');
-        $this->post('/records/trips', [...$this->opening($vehicle), 'opening' => 1025, 'mileage_note' => 'Garage test drive'])->assertSessionHasNoErrors();
+        $this->post('/records/trips', [...$this->opening($vehicle), 'opening' => 1025])->assertSessionHasNoErrors();
         $trip = AdminRecord::where('module', 'trips')->firstOrFail();
         $this->assertSame(25, $trip->data['mileage_gap']);
         $this->assertDatabaseHas('vehicle_events', ['vehicle_id' => $vehicle->id, 'trip_id' => $trip->id, 'kind' => 'Mileage gap']);

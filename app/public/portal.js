@@ -22,18 +22,27 @@ document.addEventListener('click',event=>{
 });
 document.querySelectorAll('form[data-confirm]').forEach(form=>form.addEventListener('submit',event=>{if(!confirm(form.dataset.confirm))event.preventDefault()}));
 
+const departure=document.querySelector('#departure[type="datetime-local"]');
+if(departure){
+ const refreshMinimum=()=>{
+  const minimum=new Date().toISOString().slice(0,16);
+  if(departure.min!==minimum)departure.min=minimum;
+ };
+ departure.addEventListener('focus',refreshMinimum);
+ refreshMinimum();
+ window.setInterval(refreshMinimum,1000);
+}
+
 const tripVehicle=document.querySelector('#vehicle_id');
 const openingMileage=document.querySelector('#opening');
 if(tripVehicle&&openingMileage){
  const expected=document.querySelector('#expected_mileage');
  const verified=document.querySelector('#mileage_verified');
- const note=document.querySelector('#mileage_note');
  const message=document.querySelector('#mileage-message');
  const updateMessage=()=>{
   const mileage=Number(expected.value);
   const gap=Math.round((Number(openingMileage.value)-mileage)*10)/10;
-  note.required=gap!==0;
-  message.textContent=`Current vehicle mileage: ${mileage.toLocaleString()} km. Verify this against the odometer.`+(gap!==0?` Difference: ${gap>0?'+':''}${gap} km. Enter a reason; this gap will be logged.`:'');
+  message.textContent=`Current vehicle mileage: ${mileage.toLocaleString()} km. Verify this against the odometer.`+(gap!==0?` Difference: ${gap>0?'+':''}${gap} km. This difference will be logged.`:'');
  };
  const selectMileage=(initial=false)=>{
   const option=tripVehicle.selectedOptions[0];

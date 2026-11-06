@@ -12,6 +12,12 @@ class TripTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(now('Africa/Accra')->setDate(2026, 10, 27)->setTime(8, 0));
+    }
+
     private function user(string $role = 'driver'): User
     {
         $user = User::factory()->create();
@@ -137,11 +143,11 @@ class TripTest extends TestCase
         $this->assertEquals(2, AdminRecord::where('module', 'trips')->count());
     }
 
-    public function test_driver_without_licence_verification_can_open_but_invalid_mileage_is_rejected(): void
+    public function test_past_departure_is_rejected_and_current_minute_is_allowed(): void
     {
         $driver = $this->user();
         $vehicle = $this->vehicle($driver);
-        $this->actingAs($driver)->post('/records/trips', [...$this->opening($vehicle), 'opening' => 999])->assertSessionHasErrors('mileage_note');
+        $this->actingAs($driver)->post('/records/trips', [...$this->opening($vehicle), 'departure' => '2026-10-27T07:59'])->assertSessionHasErrors('departure');
         $this->post('/records/trips', $this->opening($vehicle))->assertRedirect()->assertSessionHasNoErrors();
     }
 
