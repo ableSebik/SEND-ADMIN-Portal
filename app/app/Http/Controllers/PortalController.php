@@ -87,7 +87,14 @@ class PortalController extends Controller
             $q->where('status', $r->status);
         }$records = $q->latest()->paginate(15)->withQueryString();
 
-        return view($module === 'trips' ? 'trips.index' : ($module === 'vehicles' ? 'vehicles.index' : 'records'), compact('module', 'records'));
+        if ($module === 'trips') {
+            $osoIds = $records->getCollection()->pluck('data.driver_id')->filter()->unique();
+            $osoNames = User::whereIn('id', $osoIds)->pluck('name', 'id');
+
+            return view('trips.index', compact('module', 'records', 'osoNames'));
+        }
+
+        return view($module === 'vehicles' ? 'vehicles.index' : 'records', compact('module', 'records'));
     }
 
     public function form(string $module)

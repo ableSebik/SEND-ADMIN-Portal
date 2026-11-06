@@ -76,7 +76,9 @@ class TripTest extends TestCase
         $this->assertArrayNotHasKey('closing', $trip->data);
         $this->assertArrayNotHasKey('return_at', $trip->data);
         $this->assertDatabaseCount('approvals', 0);
-        $this->get('/records/trips')->assertOk()->assertSee('badge pending', false)->assertSee('Add closing details');
+        $this->get('/records/trips')->assertOk()->assertSee('badge pending', false)->assertSee('Add closing details')
+            ->assertSee('<th>OSO</th>', false)->assertSee('<td>'.e($driver->name).'</td>', false)
+            ->assertDontSee('Mileage Before')->assertDontSee('Mileage After');
         $this->get('/records/trips/'.$trip->id)->assertOk()->assertSee('Opening details')->assertSee('Closing details');
     }
 
