@@ -10,6 +10,40 @@ use Illuminate\Validation\ValidationException;
 
 class ReferenceDataController extends Controller
 {
+    private function deletionTarget(Request $request, string $kind, int $id)
+    {
+        abort_unless(Access::allows($request->user(), 'vehicles.write'), 403);
+        abort_unless(in_array($kind, ['donor', 'project'], true), 404);
+
+        return DB::table($kind === 'donor' ? 'asset_donors' : 'asset_projects')->find($id) ?? abort(404);
+    }
+
+    public function deleteForm(Request $request, string $kind, int $id)
+    {
+        $record = $this->deletionTarget($request, $kind, $id);
+
+        return view('reference-delete', compact('record', 'kind'));
+    }
+
+    public function delete(Request $request, string $kind, int $id)
+    {
+        $this->deletionTarget($request, $kind, $id);
+        $request->validate(['confirmation' => ['required', Rule::in(['DELETE'])], 'current_password' => 'required|current_password']);
+        DB::transaction(function () use ($request, $kind, $id) {
+            $table = $kind === 'donor' ? 'asset_donors' : 'asset_projects';
+            $record = DB::table($table)->lockForUpdate()->find($id);
+            abort_unless($record, 404);
+            if (DB::table('assets')->where($kind.'_id', $id)->exists()
+                || ($kind === 'donor' && DB::table('asset_projects')->where('donor_id', $id)->exists())) {
+                throw ValidationException::withMessages(['confirmation' => 'This '.$kind.' is linked to existing records and cannot be deleted. Remove its assignments first.']);
+            }
+            DB::table($table)->where('id', $id)->delete();
+            PortalController::audit('Deleted '.$kind, $record->name);
+        });
+
+        return redirect('/reference-data')->with('success', ucfirst($kind).' deleted. Existing asset and trip history is retained.');
+    }
+
     public function index(Request $request)
     {
         abort_unless(Access::allows($request->user(), 'vehicles.write'), 403);

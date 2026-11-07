@@ -70,6 +70,8 @@ Route::middleware(['auth', AccountSecurity::class])->group(function () {
     Route::post('/vehicles/{id}/service', [FleetOperationsController::class, 'startService']);
     Route::get('/reference-data', [ReferenceDataController::class, 'index']);
     Route::post('/reference-data', [ReferenceDataController::class, 'store']);
+    Route::get('/reference-data/{kind}/{id}/delete', [ReferenceDataController::class, 'deleteForm']);
+    Route::delete('/reference-data/{kind}/{id}', [ReferenceDataController::class, 'delete'])->middleware('throttle:5,1');
     Route::get('/assets/register/export', [ImportedAssetController::class, 'export']);
     Route::get('/assets/register/{id}', [ImportedAssetController::class, 'show']);
     Route::delete('/assets/register/{id}', [ImportedAssetController::class, 'delete']);
