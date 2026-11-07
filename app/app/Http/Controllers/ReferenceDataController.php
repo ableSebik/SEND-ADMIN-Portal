@@ -23,7 +23,7 @@ class ReferenceDataController extends Controller
     {
         abort_unless(Access::allows($request->user(), 'vehicles.write'), 403);
         $v = $request->validate(['kind' => 'required|in:donor,project', 'name' => 'required|string|max:180',
-            'code' => ['required_if:kind,project', 'nullable', 'string', 'max:80'],
+            'code' => ['nullable', 'string', 'max:80'],
             'donor_id' => 'nullable|integer|exists:asset_donors,id',
             'start_date' => 'nullable|date_format:Y-m-d', 'end_date' => 'nullable|date_format:Y-m-d|after_or_equal:start_date']);
         $name = preg_replace('/\s+/u', ' ', trim($v['name']));
@@ -38,7 +38,12 @@ class ReferenceDataController extends Controller
                 }
                 DB::table('asset_donors')->insert(['name' => $name, 'normalized_name' => $normalized, 'created_at' => now(), 'updated_at' => now()]);
             } else {
-                $code = strtoupper(trim($v['code']));
+                $code = strtoupper(trim($v['code'] ?? ''));
+                if ($code === '') {
+                    do {
+                        $code = 'PRJ-'.strtoupper(bin2hex(random_bytes(6)));
+                    } while (DB::table('asset_projects')->where('code', $code)->exists());
+                }
                 if ($code === '' || DB::table('asset_projects')->whereRaw('LOWER(name) = ?', [$normalized])->orWhere('code', $code)->exists()) {
                     throw ValidationException::withMessages(['name' => 'Use a unique project name and code.']);
                 }

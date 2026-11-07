@@ -161,6 +161,23 @@ class FleetOperationsTest extends TestCase
         $this->get('/operational-history')->assertForbidden();
     }
 
+    public function test_project_can_be_added_without_code_or_donor(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $this->get('/reference-data')->assertOk()
+            ->assertSeeInOrder(['Add project', 'Add donor'])
+            ->assertDontSee('name="code"', false)
+            ->assertSee('Donor (optional)');
+        $this->post('/reference-data', ['kind' => 'project', 'name' => 'Independent Project'])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $project = DB::table('asset_projects')->where('name', 'Independent Project')->first();
+        $this->assertNotNull($project);
+        $this->assertNull($project->donor_id);
+        $this->assertNotEmpty($project->code);
+        $this->post('/reference-data', ['kind' => 'project', 'name' => ' independent  project '])
+            ->assertSessionHasErrors('name');
+    }
+
     public function test_service_request_records_form_details_and_completes_with_renewal(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
