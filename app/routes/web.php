@@ -99,6 +99,8 @@ Route::middleware(['auth', AccountSecurity::class])->group(function () {
 
         return view('reports');
     });
+    Route::get('/records/assets/csv-template', [\App\Http\Controllers\AssetCsvController::class, 'template']);
+    Route::post('/records/assets/csv-upload', [\App\Http\Controllers\AssetCsvController::class, 'upload']);
     Route::get('/records/{module}', [P::class, 'index']);
     Route::get('/records/{module}/{id}/edit', [RecordEditController::class, 'form']);
     Route::post('/records/{module}/{id}/edit', [RecordEditController::class, 'submit']);

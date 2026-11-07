@@ -84,7 +84,8 @@ class PortalTest extends TestCase
         $creator = $this->user();
         $approver = $this->user('admin');
         $recipient = $this->user('officer');
-        $this->actingAs($creator)->post('/records/assets', [...$this->payload(), 'asset_type'=>'office_equipment', 'year'=>2026, 'price'=>100, 'department'=>'HR/Admin'])->assertSessionHasNoErrors();
+        DB::table('asset_projects')->insert(['name' => 'Test Project', 'code' => 'TEST', 'status' => 'Active']);
+        $this->actingAs($creator)->post('/records/assets', [...$this->payload(), 'asset_type'=>'office_equipment', 'year'=>2026, 'price'=>100, 'project'=>'Test Project', 'serial'=>'SER-1', 'office_id'=>'OFF-1', 'purchase_date'=>'2026-01-01', 'department'=>'HR/Admin'])->assertSessionHasNoErrors();
         $record = AdminRecord::first();
         $this->post('/records/assets/'.$record->id, ['action' => 'assign', 'custodian_id' => $recipient->id, 'reason' => 'New starter', 'version' => 1])->assertRedirect();
         $this->actingAs($approver)->post('/approvals/1', ['decision' => 'Approved', 'reason' => 'Authorized'])->assertRedirect();
@@ -102,4 +103,3 @@ class PortalTest extends TestCase
         }
     }
 }
-

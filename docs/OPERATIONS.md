@@ -21,6 +21,12 @@ All displayed business times default to Accra; application timestamps are UTC. D
 - **Exports:** Reports downloads the authorized register as CSV. Export activity is audited. CSV can be opened in Excel; native XLSX/PDF formatting is not included.
 - **Accounts:** Users can change their password on Security. Click a username in Organisation accounts to edit that account, or use the top Add User button. Super Admin can manage all users; Admin manages Driver/Officer users. Licence-expiry verification and the former authorization panel have been removed. Disabling or changing access revokes existing database sessions.
 
+## Bulk asset upload
+
+From Asset Register, choose **Add Asset**, select an asset type and continue. Download the CSV template in the Bulk upload panel, fill one row per asset, attach the CSV and choose **Upload assets**. Single-asset entry remains available below the upload panel.
+
+Templates vary by type (Origin is included only for Motor Vehicle). Keep the column headers; name, year, location, price, project, serial, office_id and purchase_date are required. Use Accra or Tamale for location, YYYY-MM-DD dates, and plain numeric prices. Project names must already exist in Donors & projects. Donor and department are not included in the upload form or templates. Files must be UTF-8 CSV, at most 5 MB and 1,000 assets. Validation errors identify the CSV row; no assets are saved until every row is valid. Each upload creates new assets, so uploading a file twice creates additional records. Existing asset creation permissions apply, and created assets are audited.
+
 ## Production preparation
 
 Use a patched, vendor-supported PHP runtime compatible with the locked dependencies. The installed XAMPP PHP 8.2.12 is a local development dependency, not a production runtime recommendation. Provision a supported MySQL deployment, HTTPS, private persistent file storage, mail delivery, restricted database credentials, centralized logging and monitoring.

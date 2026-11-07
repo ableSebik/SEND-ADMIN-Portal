@@ -83,8 +83,9 @@ class SecurityTest extends TestCase
         $officer = $this->account('officer');
         $manager = $this->account('admin');
         $record = $this->record($officer, 'assets');
+        DB::table('asset_projects')->insert(['name' => 'Test Project', 'code' => 'TEST', 'status' => 'Active']);
         $this->actingAs($officer)->get('/records/assets/'.$record->id.'/edit')->assertOk();
-        $this->post('/records/assets/'.$record->id.'/edit', ['name' => 'Updated asset', 'asset_type'=>'office_equipment', 'year'=>2026, 'price'=>100, 'department' => 'HR/Admin', 'location' => 'Tamale', 'version' => '1'])->assertRedirect();
+        $this->post('/records/assets/'.$record->id.'/edit', ['name' => 'Updated asset', 'asset_type'=>'office_equipment', 'year'=>2026, 'price'=>100, 'project'=>'Test Project', 'serial'=>'SER-1', 'office_id'=>'OFF-1', 'purchase_date'=>'2026-01-01', 'department' => 'HR/Admin', 'location' => 'Tamale', 'version' => '1'])->assertRedirect();
         $this->assertEquals('Security test', $record->fresh()->name);
         $this->actingAs($manager)->post('/approvals/'.DB::table('approvals')->value('id'), ['decision' => 'Approved', 'reason' => 'Checked'])->assertRedirect();
         $this->assertEquals('Updated asset', $record->fresh()->name);
@@ -131,5 +132,3 @@ class SecurityTest extends TestCase
         $this->assertTrue(Hash::check('eight888', $user->fresh()->password));
     }
 }
-
-

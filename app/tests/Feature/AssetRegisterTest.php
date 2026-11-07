@@ -34,7 +34,7 @@ class AssetRegisterTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'admin']));
         $this->get('/records/assets/new')->assertOk()->assertSee('Step 1 of 2')->assertSee('Continue')->assertDontSee('name="price"', false);
         foreach (AssetFields::TYPES as $type => $label) {
-            $page = $this->get('/records/assets/new?type='.$type)->assertOk()->assertSee($label)->assertSee('Step 2 of 2')->assertSee('<select id="location"', false)->assertSee('name="project"', false)->assertSee('name="donor"', false);
+            $page = $this->get('/records/assets/new?type='.$type)->assertOk()->assertSee($label)->assertSee('Step 2 of 2')->assertSee('<select id="location"', false)->assertSee('name="project"', false)->assertDontSee('name="donor"', false);
             if ($type === 'motor_vehicle') {
                 $page->assertSee('name="origin"', false);
             } else {
@@ -104,7 +104,7 @@ class AssetRegisterTest extends TestCase
             unset($payload['department']);
             $this->post('/records/assets', $payload)->assertRedirect()->assertSessionHasNoErrors();
             $this->assertDatabaseHas('records', ['category' => $label, 'department' => '']);
-            $this->get('/records/assets/new?type='.$type)->assertOk()->assertSee('Department (optional)')->assertDontSee('name="department" required', false);
+            $this->get('/records/assets/new?type='.$type)->assertOk()->assertDontSee('name="department"', false)->assertDontSee('name="department" required', false);
         }
         $this->assertDatabaseCount('records', 9);
         $this->post('/records/assets', [...$this->payload('motor_vehicle'), 'department' => 'Other'])->assertSessionHasErrors('department');
@@ -117,5 +117,18 @@ class AssetRegisterTest extends TestCase
         $this->assertDatabaseHas('asset_details', ['record_id' => $a->id, 'price' => 0, 'supplier' => 'Legacy supplier', 'asset_type' => 'office_equipment']);
         $this->assertSame('ICT', $a->fresh()->category);
         $this->actingAs($u)->get('/records/assets?type=office_equipment')->assertOk()->assertSee('Legacy asset');
+    }
+
+    public function test_new_required_fields_are_enforced_for_all_asset_types(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        foreach (array_keys(AssetFields::TYPES) as $type) {
+            $payload = $this->payload($type);
+            foreach (['project', 'serial', 'office_id', 'purchase_date'] as $field) {
+                unset($payload[$field]);
+            }
+            $this->post('/records/assets', $payload)->assertSessionHasErrors(['project', 'serial', 'office_id', 'purchase_date']);
+        }
+        $this->assertDatabaseCount('records', 0);
     }
 }
